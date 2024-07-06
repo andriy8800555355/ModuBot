@@ -5,11 +5,11 @@ from mpl_toolkits.mplot3d import Axes3D
 from io import BytesIO
 
 def add_on_commands(app: Client):
-    # Math operations
+    # Math operations with sympy
     @app.on_message(filters.command("math", prefixes="."))
     def math_command(client, message):
         try:
-            expression = message.text.split('"')[1]  # Extract expression within quotes
+            expression = message.text.split(' ', 1)[1]  # Extract expression after the command
             # Replace common notations for better compatibility with sympy
             expression = expression.replace('^', '**')
             result = sp.sympify(expression)
@@ -18,9 +18,12 @@ def add_on_commands(app: Client):
                 is_equal = sp.simplify(result.lhs - result.rhs) == 0
                 message.reply_text(f"The expression is {'correct' if is_equal else 'incorrect'}: {result}")
             else:
-                message.reply_text(f"The result is: {result}")
+                if result == 300:
+                    message.reply_photo(photo='NOPE.jpg')
+                else:
+                    message.reply_text(f"{result}")
         except IndexError:
-            message.reply_text("Please provide a valid mathematical expression within quotes.")
+            message.reply_text("Please provide a valid mathematical expression.")
         except sp.SympifyError:
             message.reply_text("There was an error evaluating the expression. Please check your input.")
         except Exception as e:
@@ -30,7 +33,7 @@ def add_on_commands(app: Client):
     @app.on_message(filters.command("plot", prefixes="."))
     def plot_command(client, message):
         try:
-            data = message.text.split('"')[1]  # Extract data within quotes
+            data = message.text.split(' ', 1)[1]  # Extract data after the command
             points = list(map(float, data.split()))
             # Separate x and y coordinates
             x_coords = points[0::2]
@@ -47,7 +50,7 @@ def add_on_commands(app: Client):
             message.reply_photo(photo=buf)
             plt.close()
         except (ValueError, IndexError):
-            message.reply_text("Please provide valid numbers within quotes in the format x1 y1 x2 y2 ...")
+            message.reply_text("Please provide valid numbers in the format x1 y1 x2 y2 ...")
         except Exception as e:
             message.reply_text(f"An unexpected error occurred: {e}")
 
@@ -83,11 +86,3 @@ def add_on_commands(app: Client):
             plt.close()
         except Exception as e:
             message.reply_text(f"An unexpected error occurred: {e}")
-
-    # Prevent unwanted commands
-    @app.on_message(filters.command(["restart", "account"], prefixes="."))
-    def restricted_command(client, message):
-        message.reply_text("This command is restricted and cannot be used.")
-
-# Note: Do not add client initialization or app.run() here
-# It should be done in the main script

@@ -54,5 +54,25 @@
     "\u0434\u0443\u0440\u0430": {
         "type": "text",
         "content": "\u044f \u0442\u0432\u043e\u044f \u0434\u0443\u0440\u043e\u0447\u043a\u0430 \u0434\u0430 \u043f\u0430\u043f\u0430"
+    },
+    "\ud83c\udf1f": {
+        "type": "photo",
+        "content": "AgACAgIAAxkDAAKj8GaGYS6ora8UhUizw1xaC23KB-m9AAIr3zEb7YQxSMU7j8jxGO_BAAgBAAMCAAN3AAceBA"
+    },
+    "idinahui": {
+        "type": "sticker",
+        "content": "CAACAgIAAx0Eb8c1kgABAdC3ZoffJETaIydPHPAKc3Tu7joR1YAAAtFJAAJ4OglJr6L7MK-BS7AeBA"
+    },
+    "\u0425\u0443\u0439": {
+        "type": "text",
+        "content": "/grow@fr0staman_bot"
+    },
+    "\u0412\u0438\u0434\u0435\u043b": {
+        "type": "sticker",
+        "content": "CAACAgIAAxkBAAKnQGaJFzwS6qhR06HIar67X-pVOhgfAAJxPAACBhzYShXL7eDhDH3iHgQ"
+    },
+    "\u0413\u043e\u0439\u0434\u0430": {
+        "type": "video",
+        "content": "BAACAgIAAxkBAAKnsGaJK83pxGNggJeB_Awdt39jY1kOAAJLSAACybpwSAAB76Ibk6DygR4E"
     }
 }
