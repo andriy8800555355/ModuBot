@@ -12,6 +12,7 @@ import psutil
 import platform
 from dotenv import load_dotenv
 import shutil
+import threading
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -23,6 +24,7 @@ RESTART_TIME_FILE = "restart_time.txt"
 MODULES_FOLDER = os.path.join(os.path.dirname(__file__), 'Modules')
 GITHUB_RAW_URL = "https://raw.githubusercontent.com/andriy8800555355/ModuBot/main/app.py"
 MODULES_REPO_URL = "https://api.github.com/repos/andriy8800555355/ModuBotModules/contents"
+CHECK_INTERVAL = 60  # seconds
 
 # Utility Functions
 def fill_console_with_background(color_code):
@@ -142,6 +144,18 @@ def load_modules(app):
             except Exception as e:
                 logger.error(f"Error loading module {module_name}: {e}")
 
+def notify_update_available():
+    try:
+        app.send_message("me", "An update is available for the main script. Please restart the bot to apply the update.")
+    except Exception as e:
+        logger.error(f"Error sending update notification: {e}")
+
+def start_update_checker():
+    while True:
+        if check_for_updates():
+            notify_update_available()
+        time.sleep(CHECK_INTERVAL)
+
 # Initialize
 display_logo()
 if not os.path.exists('.env'):
@@ -197,191 +211,16 @@ def install_library(client, message):
     library_name = command_parts[1]
     try:
         subprocess.check_call([sys.executable, "-m", "pip", "install", library_name])
-        message.reply_text(f"Library {library_name} installed successfully.")
-        logger.info(f"Installed library: {library_name}")
+        message.reply_text(f"Library `{library_name}` installed successfully.")
     except subprocess.CalledProcessError as e:
-        error_message = f"Failed to install library {library_name}. Error: {e}"
-        message.reply_text(error_message)
-        logger.error(error_message)
+        message.reply_text(f"Failed to install library `{library_name}`.")
+        logger.error(f"Error installing library `{library_name}`: {e}")
 
-@app.on_message(filters.command("commands", prefixes="."))
-def show_commands(client, message):
-    try:
-        with open('commands.txt', 'r', encoding='utf-8') as file:
-            commands_text = file.read()
-        message.reply_text(f"**Commands**:\n\n{commands_text}")
-    except FileNotFoundError:
-        message.reply_text("The commands.txt file was not found.")
-    except IOError as e:
-        message.reply_text(f"Error reading commands.txt: {e}")
+# Load modules and start the bot
+load_modules(app)
 
-@app.on_message(filters.command("pull", prefixes=".") & filters.user(sudo_users) & filters.reply)
-def pull_module(client, message):
-    if not message.reply_to_message.text:
-        message.reply_text("Please reply to a message containing the module script as text.")
-        return
-    script_content = message.reply_to_message.text
-    command_parts = message.text.split()
-    if len(command_parts) != 2:
-        message.reply_text("Usage: .pull NameOfModule.py")
-        return
-    module_name = command_parts[1]
-    if not module_name.endswith(".py"):
-        message.reply_text("The module name must end with .py")
-        return
-    os.makedirs(MODULES_FOLDER, exist_ok=True)
-    module_path = os.path.join(MODULES_FOLDER, module_name)
-    try:
-        with open(module_path, "w", encoding="utf-8") as module_file:
-            module_file.write(script_content)
-        logger.info(f"Module {module_name} saved successfully.")
-        message.reply_text(f"Module {module_name} saved. Restarting bot...")
-        restart_bot(client, message)
-    except IOError:
-        error_message = f"Error saving module {module_name}."
-        message.reply_text(error_message)
-        logger.error(error_message)
+update_checker_thread = threading.Thread(target=start_update_checker, daemon=True)
+update_checker_thread.start()
 
-@app.on_message(filters.command("start", prefixes=".") & filters.user(sudo_users))
-def start_command(client, message):
-    try:
-        message.reply_document("logo.gif")
-    except Exception as e:
-        logger.error(f"Error sending logo: {e}")
-
-    memory = psutil.virtual_memory()
-    cpu_usage = psutil.cpu_percent(interval=1)
-    process = psutil.Process(os.getpid())
-    ram_usage = process.memory_info().rss / 1024 ** 2
-    host_info = platform.uname()
-    
-    current_time = datetime.now().strftime("%d/%m(%B) %H:%M:%S")
-    modules_list = "\n".join(loaded_modules) if loaded_modules else "No modules loaded."
-    
-    welcome_message = f"""
-**Welcome to ModuBot!**
-
-Time of last reboot: {last_restart_time}
-
-**Installed modules**
-{modules_list}
-
-**Userbot owner**: **{owner_nickname}**
-
-**System Info**
-CPU Usage: {cpu_usage}%
-Memory Usage: {memory.percent}%
-RAM Usage: {ram_usage:.2f} MB
-
-**Host Info**
-System: {host_info.system}
-Node Name: {host_info.node}
-Release: {host_info.release}
-Version: {host_info.version}
-Machine: {host_info.machine}
-Processor: {host_info.processor}
-
-Enjoy!
-"""
-    message.reply_text(welcome_message)
-
-@app.on_message(filters.command("help", prefixes=".") & filters.user(sudo_users))
-def help_command(client, message):
-    help_text = """
-**Available Commands**
-
-.modules - List loaded modules
-.restart - Restart the bot
-.addsudo - Add a user to SUDO list (reply to a message)
-.install [library] - Install a Python library
-.pull [module.py] - Pull and install a new module (reply to code)
-.start - Display bot information
-.help - Show this help message
-.update - Check for updates and update the main script
-.downloadmodule [MODULE_NAME.py] - Download a module from the repository
-
-For more information on each command, use: .help [command]
-"""
-    message.reply_text(help_text)
-
-@app.on_message(filters.command("update", prefixes=".") & filters.user(sudo_users))
-def update_command(client, message):
-    if check_for_updates():
-        if update_main_script():
-            message.reply_text("Main script updated successfully. Restarting...")
-            restart_bot(client, message)
-        else:
-            message.reply_text("Failed to update the main script. Please try again later.")
-    else:
-        message.reply_text("No updates available.")
-
-@app.on_message(filters.command("downloadmodule", prefixes=".") & filters.user(sudo_users))
-def download_module(client, message):
-    command_parts = message.text.split()
-    if len(command_parts) != 2:
-        message.reply_text("Usage: .downloadmodule MODULE_NAME.py")
-        return
-    
-    module_name = command_parts[1]
-    try:
-        response = requests.get(f"{MODULES_REPO_URL}/{module_name}")
-        if response.status_code == 200:
-            module_info = response.json()
-            module_content = requests.get(module_info['download_url']).text
-            
-            os.makedirs(MODULES_FOLDER, exist_ok=True)
-            module_path = os.path.join(MODULES_FOLDER, module_name)
-            
-            with open(module_path, 'w', encoding='utf-8') as module_file:
-                module_file.write(module_content)
-            
-            logger.info(f"Module {module_name} downloaded successfully.")
-            message.reply_text(f"Module {module_name} downloaded and saved. Restarting bot...")
-            restart_bot(client, message)
-        else:
-            message.reply_text(f"Module {module_name} not found in the repository.")
-    except Exception as e:
-        error_message = f"Error downloading module {module_name}: {e}"
-        message.reply_text(error_message)
-        logger.error(error_message)
-
-# Main execution
-if __name__ == "__main__":
-    logger.info("ModuBot is starting...")
-    
-    # Check for updates on startup
-    if check_for_updates():
-        logger.info("Update available. Updating main script...")
-        if update_main_script():
-            logger.info("Main script updated successfully. Restarting...")
-            os.execl(sys.executable, sys.executable, *sys.argv)
-    
-    # Check if this is a restart
-    if os.path.exists(RESTART_TIME_FILE):
-        try:
-            with open(RESTART_TIME_FILE, 'r') as f:
-                restart_time, chat_id, message_id = f.read().strip().split('\n')
-                restart_time = float(restart_time)
-                chat_id = int(chat_id)
-                message_id = int(message_id)
-            
-            restart_duration = time.time() - restart_time
-            
-            @app.on_message(filters.chat(chat_id))
-            async def edit_restart_message(client, message):
-                if message.id == message_id:
-                    await message.edit_text(f"Restart complete! Time taken to restart: {restart_duration:.2f} seconds")
-                    # Remove this handler after executing once
-                    app.remove_handler(edit_restart_message)
-            
-            os.remove(RESTART_TIME_FILE)
-        except Exception as e:
-            logger.error(f"Error processing restart information: {e}")
-    
-    # Load modules
-    load_modules(app)
-    
-    # Start the bot
-    app.run()
-
-#TestUpdate=)
+logger.info("Starting the bot...")
+app.run()
