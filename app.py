@@ -12,7 +12,7 @@ import psutil
 import platform
 from dotenv import load_dotenv
 import shutil
-import threading
+import tempfile
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -24,7 +24,6 @@ RESTART_TIME_FILE = "restart_time.txt"
 MODULES_FOLDER = os.path.join(os.path.dirname(__file__), 'Modules')
 GITHUB_RAW_URL = "https://raw.githubusercontent.com/andriy8800555355/ModuBot/main/app.py"
 MODULES_REPO_URL = "https://api.github.com/repos/andriy8800555355/ModuBotModules/contents"
-CHECK_INTERVAL = 60  # seconds
 
 # Utility Functions
 def fill_console_with_background(color_code):
@@ -100,17 +99,26 @@ def save_sudo_user(user_id):
             logger.error(f"Error writing to {SUDO_USERS_FILE}.")
 
 def check_for_updates():
+    temp_dir = tempfile.mkdtemp()
+    temp_file_path = os.path.join(temp_dir, 'app.py')
     try:
         response = requests.get(GITHUB_RAW_URL)
         if response.status_code == 200:
-            github_content = response.text
+            with open(temp_file_path, 'w') as temp_file:
+                temp_file.write(response.text)
+            
             with open(__file__, 'r') as local_file:
-                local_content = local_file.read()
-            if github_content != local_content:
+                local_content = local_file.readlines()
+            with open(temp_file_path, 'r') as github_file:
+                github_content = github_file.readlines()
+            
+            if local_content != github_content:
                 logger.info("Update available for the main script.")
                 return True
     except Exception as e:
         logger.error(f"Error checking for updates: {e}")
+    finally:
+        shutil.rmtree(temp_dir)
     return False
 
 def update_main_script():
@@ -143,18 +151,6 @@ def load_modules(app):
                         loaded_modules.append(module_name)
             except Exception as e:
                 logger.error(f"Error loading module {module_name}: {e}")
-
-def notify_update_available():
-    try:
-        app.send_message("me", "An update is available for the main script. Please restart the bot to apply the update.")
-    except Exception as e:
-        logger.error(f"Error sending update notification: {e}")
-
-def start_update_checker():
-    while True:
-        if check_for_updates():
-            notify_update_available()
-        time.sleep(CHECK_INTERVAL)
 
 # Initialize
 display_logo()
@@ -216,13 +212,15 @@ def install_library(client, message):
         message.reply_text(f"Failed to install library `{library_name}`.")
         logger.error(f"Error installing library `{library_name}`: {e}")
 
+@app.on_message(filters.command("checkupdate", prefixes=".") & filters.user(sudo_users))
+def check_update_command(client, message):
+    if check_for_updates():
+        message.reply_text("An update is available for the main script.")
+    else:
+        message.reply_text("No updates found for the main script.")
+
 # Load modules and start the bot
 load_modules(app)
 
-update_checker_thread = threading.Thread(target=start_update_checker, daemon=True)
-update_checker_thread.start()
-
 logger.info("Starting the bot...")
 app.run()
-
-#test
