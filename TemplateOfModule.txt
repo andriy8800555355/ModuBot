@@ -1,15 +1,37 @@
 from pyrogram import Client, filters
 
-def add_on_commands(app: Client):
-    # Define your commands or event handlers here
+def add_commands(app: Client):
+    """
+    Add command handlers to the Pyrogram Client.
+    
+    This function demonstrates how to create a modular structure for your Pyrogram bot.
+    Each command is defined as a separate function within this module.
+    
+    Args:
+        app (Client): The Pyrogram Client instance.
+    """
+    
     @app.on_message(filters.command("example", prefixes="."))
     def example_command(client, message):
+        """Handle the .example command"""
         message.reply_text("This is an example command!")
+    
+    @app.on_message(filters.command("hello", prefixes="."))
+    def hello_command(client, message):
+        """Handle the .hello command"""
+        message.reply_text("Hello! How can I assist you today?")
+    
+    # Add more commands here as needed
+    
+    # Example of how to add a command that takes arguments
+    @app.on_message(filters.command("echo", prefixes="."))
+    def echo_command(client, message):
+        """Echo back the user's message"""
+        args = message.text.split(maxsplit=1)
+        if len(args) > 1:
+            message.reply_text(args[1])
+        else:
+            message.reply_text("Please provide a message to echo.")
 
-    # Add more commands or event handlers as needed
-    # @app.on_message(filters.command("another_command", prefixes="."))
-    # def another_command(client, message):
-    #     message.reply_text("This is another command!")
-
-# Note: Do not add client initialization or app.run() here
-# It should be done in the main script
+# Note: Do not add client initialization or app.run() here.
+# This should be done in the main script.
