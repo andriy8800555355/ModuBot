@@ -224,3 +224,6 @@ load_modules(app)
 
 logger.info("Starting the bot...")
 app.run()
+
+
+#test
