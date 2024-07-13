@@ -13,6 +13,7 @@ import platform
 from dotenv import load_dotenv
 import shutil
 import tempfile
+import threading
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -24,6 +25,7 @@ RESTART_TIME_FILE = "restart_time.txt"
 MODULES_FOLDER = os.path.join(os.path.dirname(__file__), 'Modules')
 GITHUB_RAW_URL = "https://raw.githubusercontent.com/andriy8800555355/ModuBot/main/app.py"
 MODULES_REPO_URL = "https://api.github.com/repos/andriy8800555355/ModuBotModules/contents"
+CHECK_INTERVAL = 60  # Check for updates every 60 seconds
 
 # Utility Functions
 def fill_console_with_background(color_code):
@@ -121,17 +123,11 @@ def check_for_updates():
         shutil.rmtree(temp_dir)
     return False
 
-def update_main_script():
-    try:
-        response = requests.get(GITHUB_RAW_URL)
-        if response.status_code == 200:
-            with open(__file__, 'w') as local_file:
-                local_file.write(response.text)
-            logger.info("Main script updated successfully.")
-            return True
-    except Exception as e:
-        logger.error(f"Error updating main script: {e}")
-    return False
+def auto_check_updates(app):
+    while True:
+        if check_for_updates():
+            app.send_message("me", "An update is available for the main script. Please restart the bot to apply the update.")
+        time.sleep(CHECK_INTERVAL)
 
 def load_modules(app):
     for filename in os.listdir(MODULES_FOLDER):
@@ -222,8 +218,9 @@ def check_update_command(client, message):
 # Load modules and start the bot
 load_modules(app)
 
+# Start automatic update check in a separate thread
+update_thread = threading.Thread(target=auto_check_updates, args=(app,), daemon=True)
+update_thread.start()
+
 logger.info("Starting the bot...")
 app.run()
-
-
-#test
