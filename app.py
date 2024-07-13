@@ -224,3 +224,5 @@ update_checker_thread.start()
 
 logger.info("Starting the bot...")
 app.run()
+
+#test
