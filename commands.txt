@@ -1,9 +1,0 @@
-.ask - Ask AI something.
-.bitcrush - Bitcrush audio.
-.calculate - Simple math.
-.download - Download video from youtube.
-.earrape - Make F to voice message...
-.SayHi - First command maked in this bot.
-.trigger - It reply with on reply. Example: ".trigger {text}" on message on you reply.
-.shakal - {1-10} I think... Here obviosly what is it...
-.epic - 4K quality 😎

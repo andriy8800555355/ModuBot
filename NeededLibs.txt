@@ -1,0 +1,11 @@
+pyrogram
+numpy
+pytube
+g4f[all]
+psutil
+python-dotenv
+pillow
+curl_cffi
+pydub
+matplotlib
+opencv-python
