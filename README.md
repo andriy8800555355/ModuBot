@@ -9,13 +9,13 @@ Before you get started, follow these steps to set up your environment:
 For Windows:
 ```bash
 python -m venv Windows
-venv\Scripts\activate
+Windows\Scripts\activate
 ```
 
 For Linux:
 ```bash
 python3 -m venv Linux
-source venv/bin/activate
+source Linux/bin/activate
 ```
 
 After activating your virtual environment, make sure to install the necessary libraries by running:
